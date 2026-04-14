@@ -2,9 +2,12 @@ name: "Pull Requests"
 on:
   pull_request_target:
 
+permissions: {}
+
 jobs:
   approve-pr-tests:
     runs-on: ubuntu-latest
+    permissions: {}
     environment:
       name: "Pull Request Tests"
     steps:
@@ -13,24 +16,32 @@ jobs:
   lint:
     needs: ["approve-pr-tests"]
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
         with:
           ref: ${{ github.event.pull_request.head.sha }}
-      - run: npm ci
-      - run: npm run lint
+          persist-credentials: false
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run lint
 
   test:
     needs: ["approve-pr-tests", "lint"]
+    permissions:
+      contents: read
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
         with:
           ref: ${{ github.event.pull_request.head.sha }}
-      - run: npm ci && npm run build
+          persist-credentials: false
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+      - run: pnpm install --frozen-lockfile && pnpm run build
       - uses: ./
         with:
           organization: ${{ secrets.CLOUDFLARE_ACCESS_ORGANIZATION }}
